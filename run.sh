@@ -2,13 +2,32 @@
 # https://github.com/kosborn/p2p-adb/
 # @theKos
 # kyle@kyleosborn.com
+# edited by Hackrylix
 
+#check first arg : l=linux | p=phone
+if [ $# -gt 0 ]; then
+
+    case $1 in
+    
+    'p')  alias adb=adb
+        IGNOREBUSYBOX=0
+        echo "Launched from phone";
+        ;;
+    'l') 
+        alias adb=/home/hackrylix/dev/android/android-sdk-linux/platform-tools/adb
+        IGNOREBUSYBOX=1
+        echo "Launched from linux box"
+        ;;
+    *) echo "No switch provided (l=linux, p=phone)";;
+    esac
+
+fi
 
 # If adb is not in your $PATH, configure it with the line below
-#alias adb=/home/usr/bin/adb
+#alias adb=/home/hackrylix/dev/android/android-sdk-linux/platform-tools/adb
 
 # If you don't need busybox (i.e. laptop), set this to 1
-IGNOREBUSYBOX=0
+#IGNOREBUSYBOX=1
 
 . ./functions.sh
 
