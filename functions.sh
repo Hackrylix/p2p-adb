@@ -11,11 +11,6 @@ none="\033[0m"
 bold="\033[1m"
 red="\033[0;31m"
 
-adb kill-server
-#either su, which helps afterwords for being root
-#or just starting the server with root permissions, which would be: sudo adb start-server
-su
-adb start-server
 
 # Check to see if local /tmp/ exists (machine)
 # Otherwise, default to /data/local/tmp/ (phone)
@@ -33,11 +28,12 @@ RTMP=/data/local/tmp/
 
 # Let's just make sure ADB and busybox (or whatever) are available...
 
+echo "Using: ${adb}"
 
-if adb version >/dev/null 2>/dev/null; then
+
+if $adb version >/dev/null 2>/dev/null; then
 	# good to go
 	if busybox >/dev/null 2>/dev/null; then
-		#adb root&
 		true
 	elif [ $IGNOREBUSYBOX -eq 1 ]; then
 		true
@@ -48,24 +44,34 @@ if adb version >/dev/null 2>/dev/null; then
 	fi
 else
 	echo "${red}adb is not in your \$PATH"
-	echo "Add it, or alias in adb${none}"
-	exit
+	if [ $tryStaticADB -eq 1 ]; then
+		echo "We will try static arm adb... Results may vary${none}"
+	else
+		echo "Add it to \$PATH, or enable \$tryStaticADB in run.sh ${none}"
+		exit
+	fi
 fi
+
+
+$adb kill-server
+#either su, which helps afterwords for being root
+#or just starting the server with root permissions, which would be: sudo adb start-server
+su -c "${adb} start-server"
 
 # ADB wrapper to easy root pain...
 command(){
 	echo "$*" > $TMP/p2p-tmp 
 
- 	adb push $TMP/p2p-tmp $RTMP/p2p-tmp 2>/dev/null
+ 	$adb push $TMP/p2p-tmp $RTMP/p2p-tmp 2>/dev/null
 
 	if [ "$ISROOT" -eq "1" ]
 	then
-		adb shell "su -c 'sh $RTMP/p2p-tmp'" | tr -d "\r"
+		$adb shell "su -c 'sh $RTMP/p2p-tmp'" | tr -d "\r"
 	else
-		adb shell "sh $RTMP/p2p-tmp" | tr -d "\r"
+		$adb shell "sh $RTMP/p2p-tmp" | tr -d "\r"
 	fi
 
-	adb shell "rm $RTMP/p2p-tmp" 2>/dev/null
+	$adb shell "rm $RTMP/p2p-tmp" 2>/dev/null
 
 
 }
@@ -76,7 +82,7 @@ isConnected(){
 	# $LINECOUNT =
 	# 2 if none
 	# >2 if yes
-	LINECOUNT=$(adb devices|wc -l)
+	LINECOUNT=$($adb devices|wc -l)
 
 
 	if [ $LINECOUNT -gt 2 ] 
@@ -92,8 +98,8 @@ isConnected(){
 
 # Check to see if we're root on the device
 isRoot(){
-	WHOAMI=$(adb shell 'id' | tr -d "\r"  )
-	TRYROOT=$(adb shell 'su -c "id"' | tr -d "\r" )
+	WHOAMI=$($adb shell 'id' | tr -d "\r"  )
+	TRYROOT=$($adb shell 'su -c "id"' | tr -d "\r" )
 
 	if echo $WHOAMI | grep 'uid=0' 2>&1 >/dev/null 
 	then
